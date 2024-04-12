@@ -1,0 +1,17 @@
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\bin\Debug\net7.0\DataAccessEF.deps.json
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\bin\Debug\net7.0\DataAccessEF.runtimeconfig.json
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\bin\Debug\net7.0\DataAccessEF.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\bin\Debug\net7.0\DataAccessEF.pdb
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\bin\Debug\net7.0\Domain.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\bin\Debug\net7.0\Domain.pdb
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.csproj.AssemblyReference.cache
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.GeneratedMSBuildEditorConfig.editorconfig
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.AssemblyInfoInputs.cache
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.AssemblyInfo.cs
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.csproj.CoreCompileInputs.cache
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.csproj.CopyComplete
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\refint\DataAccessEF.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.pdb
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.genruntimeconfig.cache
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\ref\DataAccessEF.dll
