@@ -12,7 +12,7 @@ namespace BankingSystemAPI.Controllers
 {
     [Route("api/[controller]")]
 	[ApiController]
-	//[Authorize(Roles = "Administrator")]
+	[Authorize(Roles = "Administrator")]
 	public class BranchController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;

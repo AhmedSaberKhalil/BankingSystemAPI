@@ -11,7 +11,7 @@ namespace BankingSystemAPI.Controllers
 {
     [Route("api/[controller]")]
 	[ApiController]
-	//[Authorize]
+	[Authorize]
 	public class TransferController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
