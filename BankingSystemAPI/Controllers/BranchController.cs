@@ -1,4 +1,5 @@
-﻿using DataAccessEF.Repository;
+﻿using AutoMapper;
+using DataAccessEF.Repository;
 using Domain.DTOs.DtoModels;
 using Domain.Models;
 using Domain.Repository;
@@ -15,11 +16,13 @@ namespace BankingSystemAPI.Controllers
 	public class BranchController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-		public BranchController(IUnitOfWork unitOfWork)
+        public BranchController(IUnitOfWork unitOfWork, IMapper mapper)
 		{
 			this._unitOfWork = unitOfWork;
-		}
+            this._mapper = mapper;
+        }
 
 		[HttpGet("GetAll")]
 		public IActionResult GetAll()
@@ -38,8 +41,10 @@ namespace BankingSystemAPI.Controllers
 		{
 			if (ModelState.IsValid)
 			{
-				Branch branch = MapToBranch(branchDto);
-				_unitOfWork.Branchs.Add(branch);
+			//	Branch branch = MapToBranch(branchDto);
+                var branch = _mapper.Map<Branch>(branchDto);
+
+                _unitOfWork.Branchs.Add(branch);
 				_unitOfWork.Complete();
 				string actionLink = Url.Link("BranchDetailsRoute", new { id = branch.BranchID });
 				return Created(actionLink, branch);
@@ -55,9 +60,11 @@ namespace BankingSystemAPI.Controllers
 			{
 				if (id == branchDto.BranchID)
 				{
-					Branch branch = MapToBranch(branchDto);
+				//	Branch branch = MapToBranch(branchDto);
+                    var branch = _mapper.Map<Branch>(branchDto);
 
-					_unitOfWork.Branchs.Update(id, branch);
+
+                    _unitOfWork.Branchs.Update(id, branch);
 					_unitOfWork.Complete();
 					return StatusCode(StatusCodes.Status204NoContent);
 
@@ -91,14 +98,14 @@ namespace BankingSystemAPI.Controllers
 				}
 			}
 		}
-		private Branch MapToBranch(DtoBranch branchDto)
-		{
-			return new Branch
-			{
-				Location = branchDto.Location,
-				BranchName = branchDto.BranchName,
-			};
-		}
+		//private Branch MapToBranch(DtoBranch branchDto)
+		//{
+		//	return new Branch
+		//	{
+		//		Location = branchDto.Location,
+		//		BranchName = branchDto.BranchName,
+		//	};
+		//}
 
 		[HttpGet("Branch&Employee/")]
 		public IActionResult GetBranchtWithEmployee(int branchId)

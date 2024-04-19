@@ -1,4 +1,5 @@
-﻿using DataAccessEF.Repository;
+﻿using AutoMapper;
+using DataAccessEF.Repository;
 using Domain.DTOs.DtoModels;
 using Domain.Models;
 using Domain.Repository;
@@ -11,15 +12,17 @@ namespace BankingSystemAPI.Controllers
 {
     [Route("api/[controller]")]
 	[ApiController]
-	[Authorize]
+	//[Authorize]
 	public class EmployeeController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-		public EmployeeController(IUnitOfWork unitOfWork)
+        public EmployeeController(IUnitOfWork unitOfWork, IMapper mapper)
 		{
 			this._unitOfWork = unitOfWork;
-		}
+            this._mapper = mapper;
+        }
 
 		[HttpGet("GetAll")]
 		[ResponseCache(Duration = 30)]
@@ -39,8 +42,10 @@ namespace BankingSystemAPI.Controllers
 		{
 			if (ModelState.IsValid)
 			{
-				Employee employee = MapToAccount(employeeDto);
-				_unitOfWork.Employees.Add(employee);
+			//	Employee employee = MapToAccount(employeeDto);
+                var employee = _mapper.Map<Employee>(employeeDto);
+
+                _unitOfWork.Employees.Add(employee);
 				_unitOfWork.Complete();
 				string actionLink = Url.Link("EmployeeDetailsRoute", new { id = employee.EmployeeID });
 				return Created(actionLink, employee);
@@ -56,9 +61,9 @@ namespace BankingSystemAPI.Controllers
 			{
 				if (id == employeeDto.EmployeeID)
 				{
-					Employee employee = MapToAccount(employeeDto);
-
-					_unitOfWork.Employees.Update(id, employee);
+					//Employee employee = MapToAccount(employeeDto);
+                    var employee = _mapper.Map<Employee>(employeeDto);
+                    _unitOfWork.Employees.Update(id, employee);
 					_unitOfWork.Complete();
 					return StatusCode(StatusCodes.Status204NoContent);
 
@@ -92,14 +97,14 @@ namespace BankingSystemAPI.Controllers
 				}
 			}
 		}
-		private Employee MapToAccount(DtoEmployee employeeDto)
-		{
-			return new Employee
-			{
-				Name = employeeDto.Name,
-				Position = employeeDto.Position,
-				BranchID = employeeDto.BranchID,
-			};
-		}
+		//private Employee MapToAccount(DtoEmployee employeeDto)
+		//{
+		//	return new Employee
+		//	{
+		//		Name = employeeDto.Name,
+		//		Position = employeeDto.Position,
+		//		BranchID = employeeDto.BranchID,
+		//	};
+		//}
 	}
 }

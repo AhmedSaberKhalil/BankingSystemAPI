@@ -10,7 +10,7 @@ namespace BankingSystemAPI.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	[Authorize]
+	//[Authorize]
 	public class CustomerController : ControllerBase
 	{
 

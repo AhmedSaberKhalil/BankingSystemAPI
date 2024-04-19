@@ -2,6 +2,7 @@
 using DataAccessEF.Data;
 using DataAccessEF.UnitOfWork;
 using Domain.EmailService;
+using Domain.Mapper;
 using Domain.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -25,10 +26,13 @@ namespace BankingSystemAPI
 			// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 			builder.Services.AddEndpointsApiExplorer();
 		//	builder.Services.AddSwaggerGen();
+		    // Caching 
 			builder.Services.AddResponseCaching();
-			builder.Services.AddAutoMapper(typeof(Program));
 
-			builder.Services.AddSwaggerGen(c =>
+			// Register Service For AutoMapper => Convert From Dto Class To Main Class 
+            builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
+
+            builder.Services.AddSwaggerGen(c =>
 			{
 				c.SwaggerDoc("v1", new OpenApiInfo { Title = "Demo", Version = "v1" });
 			});
@@ -67,7 +71,7 @@ namespace BankingSystemAPI
 					}
 				});
 			});
-
+			// Connection String
 			builder.Services.AddDbContext<ApplicationDbContext>(options => {
 
 				options.UseSqlServer(builder.Configuration.GetConnectionString("cs"));
@@ -99,7 +103,7 @@ namespace BankingSystemAPI
 				};
 			});
 
-			// Configure rate limiting
+			// Configure Rate Limiting
 			builder.Services.AddRateLimiter(options => {
 				options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(content =>
 				RateLimitPartition.GetFixedWindowLimiter(

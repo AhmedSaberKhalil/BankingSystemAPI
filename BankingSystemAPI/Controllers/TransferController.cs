@@ -1,4 +1,5 @@
-﻿using DataAccessEF.Repository;
+﻿using AutoMapper;
+using DataAccessEF.Repository;
 using Domain.DTOs.DtoModels;
 using Domain.Models;
 using Domain.UnitOfWork;
@@ -14,11 +15,13 @@ namespace BankingSystemAPI.Controllers
 	public class TransferController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-		public TransferController(IUnitOfWork unitOfWork)
+        public TransferController(IUnitOfWork unitOfWork, IMapper mapper)
 		{
 			this._unitOfWork = unitOfWork;
-		}
+            this._mapper = mapper;
+        }
 
 		[HttpGet("GetAll")]
 		public IActionResult GetAll()
@@ -36,8 +39,10 @@ namespace BankingSystemAPI.Controllers
 		{
 			try
 			{
-				Transfer transfer = MapToTransfer(transferDto);
-				_unitOfWork.Transfers.Add(transfer);
+				//Transfer transfer = MapToTransfer(transferDto);
+                var transfer = _mapper.Map<Transfer>(transferDto);
+
+                _unitOfWork.Transfers.Add(transfer);
 				_unitOfWork.Complete();
 
 				// Update ToAccount balance
@@ -66,8 +71,9 @@ namespace BankingSystemAPI.Controllers
 		{
 			try
 			{
-				Transfer transfer = MapToTransfer(transferDto);
-				_unitOfWork.Transfers.Update(id, transfer);
+			//	Transfer transfer = MapToTransfer(transferDto);
+                var transfer = _mapper.Map<Transfer>(transferDto);
+                _unitOfWork.Transfers.Update(id, transfer);
 				_unitOfWork.Complete();
 
 				// Update ToAccount balance

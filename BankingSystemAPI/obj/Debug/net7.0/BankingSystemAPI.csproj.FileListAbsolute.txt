@@ -88,3 +88,4 @@ D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\ne
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\DataAccessEF.pdb
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Domain.pdb
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\AutoMapper.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\obj\Debug\net7.0\BankingSystemAPI.sourcelink.json

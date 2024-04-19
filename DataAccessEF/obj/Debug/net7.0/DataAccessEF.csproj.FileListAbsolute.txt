@@ -15,3 +15,4 @@ D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.pdb
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.genruntimeconfig.cache
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\ref\DataAccessEF.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\DataAccessEF\obj\Debug\net7.0\DataAccessEF.sourcelink.json

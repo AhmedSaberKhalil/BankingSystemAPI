@@ -12,7 +12,7 @@ namespace BankingSystemAPI.Controllers
 {
     [Route("api/[controller]")]
 	[ApiController]
-	//[Authorize]
+	[Authorize]
 	public class AccountController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
@@ -40,7 +40,7 @@ namespace BankingSystemAPI.Controllers
 		{
 			if (ModelState.IsValid)
 			{
-				var account = _mapper.Map<Account>(accountDto);
+                Account account = _mapper.Map<Account>(accountDto);
 				_unitOfWork.Accounts.Add(account);
 				_unitOfWork.Complete();
 				string actionLink = Url.Link("AccountDetailsRoute", new { id = account.AccountID });

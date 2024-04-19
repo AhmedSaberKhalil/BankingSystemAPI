@@ -10,14 +10,14 @@ using System.Threading.Tasks;
 
 namespace Domain.Mapper
 {
-    public class AutoMapper : Profile
+    public class MappingProfile : Profile
 	{
-        public AutoMapper()
+        public MappingProfile()
 		{
 			CreateMap<DtoBranch, Branch>();
 			CreateMap<DtoEmployee, Employee>();
-			CreateMap<DtoTransfer, DtoTransfer>();
-			CreateMap<DtoAccount, Account>().ReverseMap();
+			CreateMap<DtoTransfer, Transfer>();
+			CreateMap<DtoAccount, Account>().ForMember(dest => dest.Customer, opt => opt.Ignore());//.ReverseMap();
 			//		   .ForMember(dest =>
 			//	dest.AccountID,
 			//	opt => opt.MapFrom(src => src.AccountID))
