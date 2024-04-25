@@ -12,8 +12,8 @@ namespace BankingSystemAPI.Controllers
 {
     [Route("api/[controller]")]
 	[ApiController]
-	[Authorize]
-	public class AccountController : ControllerBase
+    [Authorize(Roles = "User")]
+    public class AccountController : ControllerBase
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IMapper _mapper;

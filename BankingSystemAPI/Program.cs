@@ -3,6 +3,7 @@ using DataAccessEF.Data;
 using DataAccessEF.UnitOfWork;
 using Domain.EmailService;
 using Domain.Mapper;
+using Domain.Models;
 using Domain.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -81,9 +82,10 @@ namespace BankingSystemAPI
 			// Service For Email
 			builder.Services.AddScoped<IEmailService, EmailService>();
 			builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+			builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWT"));
 
-			// [Authoriz] used JWT Token in Chck Authantiaction
-			builder.Services.AddAuthentication(options =>
+            // [Authoriz] used JWT Token in Chck Authantiaction
+            builder.Services.AddAuthentication(options =>
 			{
 				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 				options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;

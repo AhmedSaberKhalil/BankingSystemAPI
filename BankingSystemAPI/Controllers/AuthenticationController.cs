@@ -2,9 +2,11 @@
 using DataAccessEF.Data;
 using Domain.DTOs.DtoAuthentication;
 using Domain.EmailService;
+using Domain.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -21,15 +23,17 @@ namespace BankingSystemAPI.Controllers
 		private readonly UserManager<ApplicationUser> userManager;
 		private readonly SignInManager<ApplicationUser> signInManager;
 		private readonly IConfiguration configuration;
-		private readonly IEmailService emailService;
+        private readonly IOptions<JwtSettings> _options;
+        private readonly IEmailService emailService;
 		private readonly RoleManager<IdentityRole> roleManager;
 
-		public AuthenticationController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, RoleManager<IdentityRole> roleManager)
+		public AuthenticationController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,IConfiguration configuration,IOptions<JwtSettings> options , RoleManager<IdentityRole> roleManager)
 		{
 			this.userManager = userManager;
 			this.signInManager = signInManager;
 			this.configuration = configuration;
-			this.emailService = emailService;
+            this._options = options;
+            this.emailService = emailService;
 			this.roleManager = roleManager;
 		}
 		[HttpPost("Register")]
@@ -73,60 +77,95 @@ namespace BankingSystemAPI.Controllers
 					if (found)
 					{
 						if (loginDto.Username == "ahmedkhalil")
-						{
 							await userManager.AddToRoleAsync(user, "Administrator");
 
-						}
 						else
-						{
 							await userManager.AddToRoleAsync(user, "User");
 
-						}
+						
 
-						// Add Claims Token
-						var claims = new List<Claim>();
-						claims.Add(new Claim(ClaimTypes.Name, user.UserName));
-						claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
-						claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
+                        // Define token lifetime
+                        var tokenLifetime = TimeSpan.FromMinutes(30);
 
-						// Add Role
-						// Role تبع انهي Token عشان اعرف ال
-
-						var role = await userManager.GetRolesAsync(user);
-						foreach (var itemRole in role)
+                        var tokenHandler = new JwtSecurityTokenHandler();
+						var tokenDescriptor = new SecurityTokenDescriptor
 						{
-							claims.Add(new Claim(ClaimTypes.Role, itemRole));
-						}
+							Issuer = _options.Value.ValidIssuer,
+							Audience = _options.Value.ValiedAudiance,
+							SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Value.Secret))
+							, SecurityAlgorithms.HmacSha256),
+							Subject = new ClaimsIdentity(new Claim[]
+							{
+								new Claim(ClaimTypes.Name, user.UserName),
+								new Claim(ClaimTypes.NameIdentifier, user.Id),
+								new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+								
+							}),
+                            Expires = DateTime.UtcNow.Add(tokenLifetime) // Set token expiration time
 
-						// Key To Pass To signingCredentials
-						SecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"]));
-						// signingCredentials 
-						SigningCredentials signincred = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+                        };
+                        // Add user roles as claims
+                        var userRoles = await userManager.GetRolesAsync(user);
+                        foreach (var role in userRoles)
+                        {
+                            tokenDescriptor.Subject.AddClaim(new Claim(ClaimTypes.Role, role));
+                        }
+                        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+                        var accessToken = tokenHandler.WriteToken(securityToken);
 
-						// create Token  in 2 steps
+                        // Generate and set password reset token
+                        var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+                        await userManager.SetAuthenticationTokenAsync(user, "ResetPassword", "ResetPasswordToken", resetToken);
+                        // save user info to AspNetUserLogins
+                        await userManager.AddLoginAsync(user, new UserLoginInfo("Identity", user.Id, user.UserName));
 
-						// 1- represent Token
-						// Json الداتا هنا بتتبعت
-						JwtSecurityToken myToken = new JwtSecurityToken(
-							issuer: configuration["JWT:ValidIssuer"],     // url web api (Provider)
-							audience: configuration["JWT:ValiedAudiance"],  // url consumer angular
-							claims: claims,
-							expires: DateTime.UtcNow.AddHours(1),
-							signingCredentials: signincred
+                        return Ok(accessToken);
 
-							);
+						#region Another way to create JwtToken 
 
-						// 2- Create Token
-						return Ok(new
-						{
+						//// Add Claims Token
+						//var claims = new List<Claim>();
+						//claims.Add(new Claim(ClaimTypes.Name, user.UserName));
+						//claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
+						//claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
 
-							token = new JwtSecurityTokenHandler().WriteToken(myToken),
-							expiration = myToken.ValidTo
-						});
+						//// Add Role
+						//// Role تبع انهي Token عشان اعرف ال
 
+						//var role = await userManager.GetRolesAsync(user);
+						//foreach (var itemRole in role)
+						//{
+						//	claims.Add(new Claim(ClaimTypes.Role, itemRole));
+						//}
 
+						//// Key To Pass To signingCredentials
+						//SecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Value.Secret));
+						//// signingCredentials 
+						//SigningCredentials signincred = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+						//// create Token  in 2 steps
+
+						//// 1- represent Token
+						//// Json الداتا هنا بتتبعت
+						//JwtSecurityToken myToken = new JwtSecurityToken(
+						//	issuer: _options.Value.ValidIssuer,     // url web api (Provider)
+						//	audience: _options.Value.ValiedAudiance,  // url consumer angular
+						//	claims: claims,
+						//	expires: DateTime.UtcNow.AddHours(1),
+						//	signingCredentials: signincred
+
+						//	);
+
+						//// 2- Create Token
+						//return Ok(new
+						//{
+
+						//	token = new JwtSecurityTokenHandler().WriteToken(myToken),
+						//	expiration = myToken.ValidTo
+						//}); 
+						#endregion
 					}
-				}
+                }
 				return Unauthorized();
 
 			}
