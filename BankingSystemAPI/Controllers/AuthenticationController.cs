@@ -12,6 +12,7 @@ using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
+using System.Security.Principal;
 using System.Text;
 
 namespace BankingSystemAPI.Controllers
@@ -99,8 +100,9 @@ namespace BankingSystemAPI.Controllers
 								new Claim(ClaimTypes.Name, user.UserName),
 								new Claim(ClaimTypes.NameIdentifier, user.Id),
 								new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-								
-							}),
+								new Claim(ClaimTypes.Email, user.Email),
+
+                            }),
                             Expires = DateTime.UtcNow.Add(tokenLifetime) // Set token expiration time
 
                         };
@@ -172,7 +174,27 @@ namespace BankingSystemAPI.Controllers
 			return Unauthorized();
 		}
 
-		[HttpPost("Change-Password")]
+        [HttpGet("userinfo")]
+        public IActionResult GetUserInfo()
+        {
+            if (HttpContext.User.Identity.IsAuthenticated)
+            {
+                var userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+                var username = HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+                var email = HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
+                // Access other user claims as needed
+                return Ok(new
+                {
+                    UserId = userId,
+                    Username = username,
+                    Email = email
+                });
+            }
+
+            return Unauthorized();
+    }
+
+        [HttpPost("Change-Password")]
 		public async Task<IActionResult> ChangePassword(AuthenticateChangePasswordDto changePasswordDto)
 		{
 			if (ModelState.IsValid)
