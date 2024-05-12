@@ -101,6 +101,8 @@ namespace BankingSystemAPI.Controllers
 								new Claim(ClaimTypes.NameIdentifier, user.Id),
 								new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 								new Claim(ClaimTypes.Email, user.Email),
+								new ("UserType", "Employee"),
+								new ("UserGender", "Male")
 
                             }),
                             Expires = DateTime.UtcNow.Add(tokenLifetime) // Set token expiration time

@@ -1,15 +1,18 @@
 
 using DataAccessEF.Data;
 using DataAccessEF.UnitOfWork;
+using Domain.CustomPolicy;
 using Domain.EmailService;
 using Domain.Mapper;
 using Domain.Models;
 using Domain.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -90,6 +93,39 @@ namespace BankingSystemAPI
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddRoles<IdentityRole>()
         .AddDefaultTokenProviders();
+
+			// Custom Policy
+			builder.Services.AddAuthorization(options =>
+			{
+				options.AddPolicy("EmployeeOnly", builder =>
+				{
+					builder.RequireClaim("UserType", "Employee");
+				});
+			});
+
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("EmployeeMaleOnly", builder =>
+                {
+					builder.AddRequirements(new EmployeeMaleOnlyRequirement());
+                });
+            });
+			builder.Services.AddScoped<IAuthorizationHandler, EmployeeAuthorizationHandler>();
+         /*   builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("EmployeeMaleOnly", builder =>
+                {
+                    builder.RequireAssertion(context =>
+                    {
+                        var gender = context.User.FindFirstValue("UserGender");
+                        if (gender == "Male")
+
+                            return true;
+
+                        return false;
+                    });
+                });
+            });*/
 
             // [Authoriz] used JWT Token in Chck Authantiaction
             builder.Services.AddAuthentication(options =>

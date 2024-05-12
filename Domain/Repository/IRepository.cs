@@ -12,8 +12,8 @@ namespace Domain.Repository
 		IEnumerable<T> GetAll();
 		T GetById(int id);
 		T Find(Expression<Func<T, bool>> criteria);
-		void Add(T entity);
-		void Update(int id, T entity);
+		T Add(T entity);
+		T Update(int id, T entity);
 		void Delete(T entity);
 
 

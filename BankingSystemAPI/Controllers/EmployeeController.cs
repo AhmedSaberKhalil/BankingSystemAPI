@@ -25,14 +25,17 @@ namespace BankingSystemAPI.Controllers
         }
 
 		[HttpGet("GetAll")]
-		[ResponseCache(Duration = 30)]
+		[Authorize(Policy = "EmployeeOnly")]
+        [ResponseCache(Duration = 30)]
 		public IActionResult GetAll()
 		{
 			return Ok(_unitOfWork.Employees.GetAll());
 		}
 
 		[HttpGet("GetById/{id}", Name = "EmployeeDetailsRoute")]
-		public IActionResult GetById(int id)
+        [Authorize(Policy = "EmployeeMaleOnly")]
+
+        public IActionResult GetById(int id)
 		{
 			return Ok(_unitOfWork.Employees.GetById(id));
 		}
