@@ -3,6 +3,8 @@ using DataAccessEF.Data;
 using Domain.DTOs.DtoAuthentication;
 using Domain.EmailService;
 using Domain.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -175,7 +177,39 @@ namespace BankingSystemAPI.Controllers
 			}
 			return Unauthorized();
 		}
-
+        [HttpPost("update-userName")]
+        public async Task<ActionResult> UpdateUser(UpdateUserDto userDto)
+        {
+            if (ModelState.IsValid)
+            {
+                ApplicationUser user =  await userManager.FindByNameAsync(userDto.oldUserName);
+				if(user ==  null)
+				{
+					return Unauthorized();
+				}
+				else
+				{
+					if (user.UserName != userDto.NewUserName && user.UserName == userDto.oldUserName)
+						user.UserName = userDto.NewUserName;
+					else
+						return BadRequest();
+                }
+               
+                //Call the Update method to Update the User data
+                var result = await userManager.UpdateAsync(user);
+				if (!result.Succeeded)
+				{
+					foreach (var item in result.Errors)
+					{
+						return BadRequest(item.Description);
+					}
+				}
+				else
+					return Ok("Update User Name Sucessully");
+               
+            }
+			return Unauthorized();
+        }
         [HttpGet("userinfo")]
         public IActionResult GetUserInfo()
         {

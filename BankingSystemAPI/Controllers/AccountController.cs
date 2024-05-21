@@ -2,10 +2,12 @@
 using DataAccessEF.Repository;
 using Domain.DTOs.DtoModels;
 using Domain.Models;
+using Domain.Repository;
 using Domain.UnitOfWork;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace BankingSystemAPI.Controllers
@@ -17,22 +19,60 @@ namespace BankingSystemAPI.Controllers
 	{
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IMapper _mapper;
-
-		public AccountController(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IMemoryCache _cache;
+        private readonly ILogger<AccountController> _logger;
+        private const string accountListCacheKey = "accountList";
+        public AccountController(IUnitOfWork unitOfWork, IMapper mapper, IMemoryCache cache, ILogger<AccountController> logger)
         {
 			this._unitOfWork = unitOfWork;
 			this._mapper = mapper;
+			this._cache = cache;
+			this._logger = logger;
 		}
         [HttpGet("GetAll")]
 		public IActionResult GetAll()
 		{
-			return Ok(_unitOfWork.Accounts.GetAll());
-		}
+
+            _logger.Log(LogLevel.Information, "Trying to fetch the list of accounts from cache.");
+            if (_cache.TryGetValue(accountListCacheKey, out IEnumerable<Account> accounts))
+            {
+                _logger.Log(LogLevel.Information, "Account list found in cache.");
+            }
+            else
+            {
+                _logger.Log(LogLevel.Information, "Account list not found in cache. Fetching from database.");
+                accounts = _unitOfWork.Accounts.GetAll();
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                        .SetSlidingExpiration(TimeSpan.FromSeconds(30))
+                        .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
+                        .SetPriority(CacheItemPriority.Normal)
+                        .SetSize(1024);
+                _cache.Set(accountListCacheKey, accounts, cacheEntryOptions);
+            }
+            return Ok(accounts);
+        }
 
 		[HttpGet("GetById/{id}", Name = "AccountDetailsRoute")]
 		public IActionResult GetById(int id)
 		{
-			return Ok(_unitOfWork.Accounts.GetById(id));
+
+            _logger.Log(LogLevel.Information, "Trying to fetch the account from cache.");
+            if (_cache.TryGetValue(accountListCacheKey, out Account account))
+            {
+                _logger.Log(LogLevel.Information, "Account list found in cache.");
+            }
+            else
+            {
+                _logger.Log(LogLevel.Information, "Account not found in cache. Fetching from database.");
+                account = _unitOfWork.Accounts.GetById(id);
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                        .SetSlidingExpiration(TimeSpan.FromSeconds(30))
+                        .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
+                        .SetPriority(CacheItemPriority.Normal)
+                        .SetSize(1024);
+                _cache.Set(accountListCacheKey, account, cacheEntryOptions);
+            }
+            return Ok(account);
 		}
 
 		[HttpPost("Add/")]

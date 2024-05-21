@@ -7,6 +7,7 @@ using Domain.UnitOfWork;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BankingSystemAPI.Controllers
 {
@@ -17,24 +18,60 @@ namespace BankingSystemAPI.Controllers
 	{
 		private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-
-        public BranchController(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IMemoryCache _cache;
+        private readonly ILogger<BranchController> _logger;
+        private const string branchListCacheKey = "BranchList";
+        public BranchController(IUnitOfWork unitOfWork, IMapper mapper, IMemoryCache cache, ILogger<BranchController> logger)
 		{
 			this._unitOfWork = unitOfWork;
             this._mapper = mapper;
+            this._cache = cache;
+            this._logger = logger;
         }
 
 		[HttpGet("GetAll")]
 		public IActionResult GetAll()
 		{
-			return Ok(_unitOfWork.Branchs.GetAll());
-		}
+            _logger.Log(LogLevel.Information, "Trying to fetch the list of branches from cache.");
+            if (_cache.TryGetValue(branchListCacheKey, out IEnumerable<Branch> branches))
+            {
+                _logger.Log(LogLevel.Information, "Branch list found in cache.");
+            }
+            else
+            {
+                _logger.Log(LogLevel.Information, "Branch list not found in cache. Fetching from database.");
+                branches = _unitOfWork.Branchs.GetAll();
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                        .SetSlidingExpiration(TimeSpan.FromSeconds(30))
+                        .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
+                        .SetPriority(CacheItemPriority.Normal)
+                        .SetSize(1024);
+                _cache.Set(branchListCacheKey, branches, cacheEntryOptions);
+            }
+            return Ok(branches);
+        }
 
 		[HttpGet("GetById/{id}", Name = "BranchDetailsRoute")]
 		public IActionResult GetById(int id)
 		{
-			return Ok(_unitOfWork.Branchs.GetById(id));
-		}
+            _logger.Log(LogLevel.Information, "Trying to fetch the list of accounts from cache.");
+            if (_cache.TryGetValue(branchListCacheKey, out Branch branche))
+            {
+                _logger.Log(LogLevel.Information, "Branch found in cache.");
+            }
+            else
+            {
+                _logger.Log(LogLevel.Information, "Branch not found in cache. Fetching from database.");
+                branche = _unitOfWork.Branchs.GetById(id);
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                        .SetSlidingExpiration(TimeSpan.FromSeconds(30))
+                        .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
+                        .SetPriority(CacheItemPriority.Normal)
+                        .SetSize(1024);
+                _cache.Set(branchListCacheKey, branche, cacheEntryOptions);
+            }
+            return Ok(branche);
+        }
 
 		[HttpPost("Add/")]
 		public IActionResult Add([FromBody] DtoBranch branchDto)
