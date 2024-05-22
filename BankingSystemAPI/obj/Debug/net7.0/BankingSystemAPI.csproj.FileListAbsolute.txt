@@ -92,3 +92,15 @@ D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\obj\Debug\ne
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Microsoft.AspNetCore.Authorization.dll
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Microsoft.AspNetCore.Metadata.dll
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Microsoft.Extensions.Logging.Abstractions.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.AspNetCore.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Enrichers.Environment.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Enrichers.Process.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Enrichers.Thread.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Extensions.Hosting.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Extensions.Logging.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Formatting.Compact.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Settings.Configuration.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Sinks.Console.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Sinks.Debug.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Sinks.File.dll

@@ -29,141 +29,199 @@ namespace BankingSystemAPI.Controllers
             this._logger = logger;
         }
 
-		[HttpGet("GetAll")]
-		public IActionResult GetAll()
-		{
-            _logger.Log(LogLevel.Information, "Trying to fetch the list of branches from cache.");
-            if (_cache.TryGetValue(branchListCacheKey, out IEnumerable<Branch> branches))
+        [HttpGet("GetAll")]
+        public async Task<IActionResult> GetAll()
+        {
+            _logger.LogInformation("Trying to fetch the list of branches from cache.");
+
+            if (!_cache.TryGetValue(branchListCacheKey, out IEnumerable<Branch> branches))
             {
-                _logger.Log(LogLevel.Information, "Branch list found in cache.");
-            }
-            else
-            {
-                _logger.Log(LogLevel.Information, "Branch list not found in cache. Fetching from database.");
-                branches = _unitOfWork.Branchs.GetAll();
-                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                _logger.LogInformation("Branch list not found in cache. Fetching from database.");
+
+                try
+                {
+                    branches = await _unitOfWork.Branchs.GetAllAsync(); 
+                    var cacheEntryOptions = new MemoryCacheEntryOptions()
                         .SetSlidingExpiration(TimeSpan.FromSeconds(30))
                         .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
                         .SetPriority(CacheItemPriority.Normal)
                         .SetSize(1024);
-                _cache.Set(branchListCacheKey, branches, cacheEntryOptions);
+
+                    _cache.Set(branchListCacheKey, branches, cacheEntryOptions);
+                    _logger.LogInformation("Branch list fetched from database and cached.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred while fetching the branch list from the database.");
+                    return StatusCode(500, "Internal server error");
+                }
             }
+            else
+            {
+                _logger.LogInformation("Branch list found in cache.");
+            }
+
             return Ok(branches);
         }
 
-		[HttpGet("GetById/{id}", Name = "BranchDetailsRoute")]
-		public IActionResult GetById(int id)
-		{
-            _logger.Log(LogLevel.Information, "Trying to fetch the list of accounts from cache.");
-            if (_cache.TryGetValue(branchListCacheKey, out Branch branche))
+        [HttpGet("GetById/{id}", Name = "BranchDetailsRoute")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            _logger.LogInformation("Trying to fetch the branch with ID {BranchID} from cache.", id);
+
+            if (!_cache.TryGetValue($"{branchListCacheKey}_{id}", out Branch branch))
             {
-                _logger.Log(LogLevel.Information, "Branch found in cache.");
-            }
-            else
-            {
-                _logger.Log(LogLevel.Information, "Branch not found in cache. Fetching from database.");
-                branche = _unitOfWork.Branchs.GetById(id);
-                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                _logger.LogInformation("Branch not found in cache. Fetching from database.");
+
+                try
+                {
+                    branch = await _unitOfWork.Branchs.GetByIdAsync(id); 
+
+                    if (branch == null)
+                    {
+                        _logger.LogInformation("Branch with ID {BranchID} not found in the database.", id);
+                        return NotFound("Branch not found");
+                    }
+
+                    var cacheEntryOptions = new MemoryCacheEntryOptions()
                         .SetSlidingExpiration(TimeSpan.FromSeconds(30))
                         .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
                         .SetPriority(CacheItemPriority.Normal)
                         .SetSize(1024);
-                _cache.Set(branchListCacheKey, branche, cacheEntryOptions);
+
+                    _cache.Set($"{branchListCacheKey}_{id}", branch, cacheEntryOptions);
+                    _logger.LogInformation("Branch fetched from the database and cached.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred while fetching the branch details from the database.");
+                    return StatusCode(500, "Internal server error");
+                }
             }
-            return Ok(branche);
+            else
+            {
+                _logger.LogInformation("Branch found in cache.");
+            }
+
+            return Ok(branch);
         }
 
-		[HttpPost("Add/")]
-		public IActionResult Add([FromBody] DtoBranch branchDto)
-		{
-			if (ModelState.IsValid)
-			{
-			//	Branch branch = MapToBranch(branchDto);
-                var branch = _mapper.Map<Branch>(branchDto);
+        [HttpPost("Add/")]
+        public async Task<IActionResult> Add([FromBody] DtoBranch branchDto)
+        {
+            if (ModelState.IsValid)
+            {
 
-                _unitOfWork.Branchs.Add(branch);
-				_unitOfWork.Complete();
-				string actionLink = Url.Link("BranchDetailsRoute", new { id = branch.BranchID });
-				return Created(actionLink, branch);
-			}
-			else
-				return BadRequest(ModelState);
-		}
-
-		[HttpPut("Update/{id}")]
-		public IActionResult Update(int id, [FromBody] DtoBranch branchDto)
-		{
-			if (ModelState.IsValid)
-			{
-				if (id == branchDto.BranchID)
-				{
-				//	Branch branch = MapToBranch(branchDto);
+                try
+                {
                     var branch = _mapper.Map<Branch>(branchDto);
+                    await _unitOfWork.Branchs.AddAsync(branch);
+                    _unitOfWork.Complete();
+                    string actionLink = Url.Link("BranchDetailsRoute", new { id = branch.BranchID });
+                    _logger.LogInformation("Branch with ID {BranchID} added successfully.", branch.BranchID);
+                    return Created(actionLink, branch);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred while adding a new branch.");
+                    return StatusCode(500, "Internal server error");
+                }
+            }
+            else
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogInformation("Invalid model state for branch creation: {@Errors}", errors);
+                return BadRequest(ModelState);
+            }
+        }
 
+        [HttpPut("Update/{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] DtoBranch branchDto)
+        {
+            if (ModelState.IsValid)
+            {
+                if (id == branchDto.BranchID)
+                {
 
-                    _unitOfWork.Branchs.Update(id, branch);
-					_unitOfWork.Complete();
-					return StatusCode(StatusCodes.Status204NoContent);
+                    try
+                    {
+                        var branch = _mapper.Map<Branch>(branchDto);
+                        await _unitOfWork.Branchs.UpdateAsync(id, branch);
+                         _unitOfWork.Complete();
+                        _logger.LogInformation("Branch with ID {BranchID} updated successfully.", id);
+                        return NoContent();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error occurred while updating the branch with ID {BranchID}.", id);
+                        return StatusCode(500, "Internal server error");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid data provided for branch update. ID mismatch: {Id} vs DTO ID: {BranchID}", id, branchDto.BranchID);
+                    return BadRequest("Invalid data");
+                }
+            }
+            else
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogInformation("Invalid model state for branch update with ID {BranchID}: {@Errors}", id, errors);
+                return BadRequest(ModelState);
+            }
+        }
 
-				}
-				return BadRequest("Invalied data");
+        [HttpDelete("Delete/{id}")]
+        public async Task<IActionResult> DeleteById(int id)
+        {
+            try
+            {
+                var branch = await _unitOfWork.Branchs.GetByIdAsync(id); 
 
-			}
-			else
-				return BadRequest(ModelState);
-		}
+                if (branch == null)
+                {
+                    _logger.LogWarning("Branch with ID {BranchID} not found for deletion.", id);
+                    return NotFound("Branch not found");
+                }
 
-		[HttpDelete("Delete/{id}")]
-		public IActionResult DeleteById(int id)
-		{
-			Branch branch = _unitOfWork.Branchs.GetById(id);
-			if (branch == null)
-			{
-				return NotFound("Data Not Found");
-			}
-			else
-			{
-				try
-				{
-					_unitOfWork.Branchs.Delete(branch);
-					_unitOfWork.Complete();
-					return StatusCode(StatusCodes.Status204NoContent);
-				}
-				catch (Exception ex)
-				{
-					return BadRequest(ex.Message);
-				}
-			}
-		}
-		//private Branch MapToBranch(DtoBranch branchDto)
-		//{
-		//	return new Branch
-		//	{
-		//		Location = branchDto.Location,
-		//		BranchName = branchDto.BranchName,
-		//	};
-		//}
+                await _unitOfWork.Branchs.DeleteAsync(branch);
+                _unitOfWork.Complete();
+                _logger.LogInformation("Branch with ID {BranchID} deleted successfully.", id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting the branch with ID {BranchID}.", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
 
-		[HttpGet("Branch&Employee/")]
-		public IActionResult GetBranchtWithEmployee(int branchId)
-		{
-			Branch branch = _unitOfWork.Branchs.GetBranchNameWithEmployee(branchId);
-			var dto = new BranchNameWithListOfEmployeeDto();
-			if (branch == null)
-			{
-				return BadRequest("Invalied data");
-			}
-			else
-			{
-				dto.Id = branch.BranchID;
-				dto.BranchName = branch.BranchName;
-				foreach (var item in branch.Employees)
-				{
-					dto.Emp.Add(item.Name);
-				}
-			}
-			return Ok(dto);
+        [HttpGet("Branch&Employee/")]
+        public async Task<IActionResult> GetBranchWithEmployee(int branchId)
+        {
+            try
+            {
+                var branch =  _unitOfWork.Branchs.GetBranchNameWithEmployee(branchId); 
+                var dto = new BranchNameWithListOfEmployeeDto();
 
-		}
-	}
+                if (branch == null)
+                {
+                    _logger.LogWarning("Branch with ID {BranchID} not found.", branchId);
+                    return BadRequest("Invalid data");
+                }
+
+                dto.Id = branch.BranchID;
+                dto.BranchName = branch.BranchName;
+                dto.Emp = branch.Employees.Select(e => e.Name).ToList();
+
+                _logger.LogInformation("Branch with ID {BranchID} and its employees fetched successfully.", branchId);
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching the branch with employees for ID {BranchID}.", branchId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+    }
 }

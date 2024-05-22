@@ -17,97 +17,139 @@ namespace BankingSystemAPI.Controllers
 	{
 		private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<EmployeeController> _logger;
 
-        public EmployeeController(IUnitOfWork unitOfWork, IMapper mapper)
+        public EmployeeController(IUnitOfWork unitOfWork, IMapper mapper, ILogger<EmployeeController> logger)
 		{
 			this._unitOfWork = unitOfWork;
             this._mapper = mapper;
+            this._logger = logger;
         }
 
 		[HttpGet("GetAll")]
 		[Authorize(Policy = "EmployeeOnly")]
         [ResponseCache(Duration = 30)]
-		public IActionResult GetAll()
-		{
-			return Ok(_unitOfWork.Employees.GetAll());
-		}
+        public async Task<IActionResult> GetAll()
+        {
+            _logger.LogInformation("Fetching all employees.");
 
-		[HttpGet("GetById/{id}", Name = "EmployeeDetailsRoute")]
+            try
+            {
+                var customers = await _unitOfWork.Employees.GetAllAsync(); 
+                return Ok(customers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching all employees.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("GetById/{id}", Name = "EmployeeDetailsRoute")]
         [Authorize(Policy = "EmployeeMaleOnly")]
+        [HttpGet("GetById/{id}", Name = "EmployeeDetailsRoute")]
+        [Authorize(Policy = "EmployeeMaleOnly")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            _logger.LogInformation("Fetching employee by ID: {Id}", id);
+            var employee =await _unitOfWork.Employees.GetByIdAsync(id);
+            if (employee == null)
+            {
+                _logger.LogWarning("Employee with ID {Id} not found.", id);
+                return NotFound();
+            }
+            return Ok(employee);
+        }
 
-        public IActionResult GetById(int id)
-		{
-			return Ok(_unitOfWork.Employees.GetById(id));
-		}
+        [HttpPost("Add")]
+        public async Task<IActionResult> AddAsync([FromBody] DtoEmployee employeeDto)
+        {
+            _logger.LogInformation("Adding new employee.");
 
-		[HttpPost("Add/")]
-		public IActionResult Add([FromBody] DtoEmployee employeeDto)
-		{
-			if (ModelState.IsValid)
-			{
-			//	Employee employee = MapToAccount(employeeDto);
-                var employee = _mapper.Map<Employee>(employeeDto);
-
-                _unitOfWork.Employees.Add(employee);
-				_unitOfWork.Complete();
-				string actionLink = Url.Link("EmployeeDetailsRoute", new { id = employee.EmployeeID });
-				return Created(actionLink, employee);
-			}
-			else
-				return BadRequest(ModelState);
-		}
-
-		[HttpPut("Update/{id}")]
-		public IActionResult Update(int id, [FromBody] DtoEmployee employeeDto)
-		{
-			if (ModelState.IsValid)
-			{
-				if (id == employeeDto.EmployeeID)
-				{
-					//Employee employee = MapToAccount(employeeDto);
+            try
+            {
+                if (ModelState.IsValid)
+                {
                     var employee = _mapper.Map<Employee>(employeeDto);
-                    _unitOfWork.Employees.Update(id, employee);
-					_unitOfWork.Complete();
-					return StatusCode(StatusCodes.Status204NoContent);
+                    await _unitOfWork.Employees.AddAsync(employee);
+                     _unitOfWork.Complete();
 
-				}
-				return BadRequest("Invalied data");
+                    _logger.LogInformation("Employee added successfully. ID: {Id}", employee.EmployeeID);
+                    string actionLink = Url.Link("EmployeeDetailsRoute", new { id = employee.EmployeeID });
+                    return Created(actionLink, employee);
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid employee data provided.");
+                    return BadRequest(ModelState);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while adding employee.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error occurred while adding employee.");
+            }
+        }
 
-			}
-			else
-				return BadRequest(ModelState);
-		}
+        [HttpPut("Update/{id}")]
+        public async Task<IActionResult> UpdateAsync(int id, [FromBody] DtoEmployee employeeDto)
+        {
+            _logger.LogInformation("Updating employee with ID: {Id}", id);
 
-		[HttpDelete("Delete/{id}")]
-		public IActionResult DeleteById(int id)
-		{
-			Employee employee = _unitOfWork.Employees.GetById(id);
-			if (employee == null)
-			{
-				return NotFound("Data Not Found");
-			}
-			else
-			{
-				try
-				{
-					_unitOfWork.Employees.Delete(employee);
-					_unitOfWork.Complete();
-					return StatusCode(StatusCodes.Status204NoContent);
-				}
-				catch (Exception ex)
-				{
-					return BadRequest(ex.Message);
-				}
-			}
-		}
-		//private Employee MapToAccount(DtoEmployee employeeDto)
-		//{
-		//	return new Employee
-		//	{
-		//		Name = employeeDto.Name,
-		//		Position = employeeDto.Position,
-		//		BranchID = employeeDto.BranchID,
-		//	};
-		//}
-	}
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    if (id == employeeDto.EmployeeID)
+                    {
+                        var employee = _mapper.Map<Employee>(employeeDto);
+                        _unitOfWork.Employees.UpdateAsync(id, employee);
+                         _unitOfWork.Complete();
+
+                        _logger.LogInformation("Employee with ID {Id} updated successfully.", id);
+                        return StatusCode(StatusCodes.Status204NoContent);
+                    }
+                    _logger.LogWarning("Invalid data provided for employee update. ID mismatch: {Id} vs DTO ID: {EmployeeId}", id, employeeDto.EmployeeID);
+                    return BadRequest("Invalid data");
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid model state for employee update with ID: {Id}.", id);
+                    return BadRequest(ModelState);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating employee with ID: {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error occurred while updating employee.");
+            }
+        }
+
+        [HttpDelete("Delete/{id}")]
+        public async Task<IActionResult> DeleteByIdAsync(int id)
+        {
+            _logger.LogInformation("Deleting employee with ID: {Id}", id);
+
+            try
+            {
+                var employee = await _unitOfWork.Employees.GetByIdAsync(id);
+                if (employee == null)
+                {
+                    _logger.LogWarning("Employee with ID {Id} not found for deletion.", id);
+                    return NotFound("Data Not Found");
+                }
+
+                await _unitOfWork.Employees.DeleteAsync(employee);
+                _unitOfWork.Complete();
+
+                _logger.LogInformation("Employee with ID {Id} deleted successfully.", id);
+                return StatusCode(StatusCodes.Status204NoContent);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting employee with ID: {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error occurred while deleting employee.");
+            }
+        }
+    }
 }

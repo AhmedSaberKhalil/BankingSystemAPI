@@ -1,10 +1,12 @@
 
 using DataAccessEF.Data;
+using DataAccessEF.Repository;
 using DataAccessEF.UnitOfWork;
 using Domain.CustomPolicy;
 using Domain.EmailService;
 using Domain.Mapper;
 using Domain.Models;
+using Domain.Repository;
 using Domain.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -12,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -24,19 +27,22 @@ namespace BankingSystemAPI
 		{
 			var builder = WebApplication.CreateBuilder(args);
 
+
+
+
 			// Add services to the container.
 
 			builder.Services.AddControllers();
 			// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 			builder.Services.AddEndpointsApiExplorer();
-		//	builder.Services.AddSwaggerGen();
-		    // Caching 
+			//	builder.Services.AddSwaggerGen();
+			// Caching 
 			builder.Services.AddResponseCaching();
 
 			// Register Service For AutoMapper => Convert From Dto Class To Main Class 
-            builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
+			builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
-            builder.Services.AddSwaggerGen(c =>
+			builder.Services.AddSwaggerGen(c =>
 			{
 				c.SwaggerDoc("v1", new OpenApiInfo { Title = "Demo", Version = "v1" });
 			});
@@ -76,23 +82,26 @@ namespace BankingSystemAPI
 				});
 			});
 			// Connection String
-			builder.Services.AddDbContext<ApplicationDbContext>(options => {
+			builder.Services.AddDbContext<ApplicationDbContext>(options =>
+			{
 
 				options.UseSqlServer(builder.Configuration.GetConnectionString("cs"));
 			});
 			builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IBranchRepository, BranchRepository>();
 
-			// Service For Email
-			builder.Services.AddScoped<IEmailService, EmailService>();
+
+            // Service For Email
+            builder.Services.AddScoped<IEmailService, EmailService>();
 			builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 			builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWT"));
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-            {
-                options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
-            })
-        .AddEntityFrameworkStores<ApplicationDbContext>()
-        .AddRoles<IdentityRole>()
-        .AddDefaultTokenProviders();
+			builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+			{
+				options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
+			})
+		.AddEntityFrameworkStores<ApplicationDbContext>()
+		.AddRoles<IdentityRole>()
+		.AddDefaultTokenProviders();
 
 			// Custom Policy
 			builder.Services.AddAuthorization(options =>
@@ -103,32 +112,32 @@ namespace BankingSystemAPI
 				});
 			});
 
-            builder.Services.AddAuthorization(options =>
-            {
-                options.AddPolicy("EmployeeMaleOnly", builder =>
-                {
+			builder.Services.AddAuthorization(options =>
+			{
+				options.AddPolicy("EmployeeMaleOnly", builder =>
+				{
 					builder.AddRequirements(new EmployeeMaleOnlyRequirement());
-                });
-            });
+				});
+			});
 			builder.Services.AddScoped<IAuthorizationHandler, EmployeeAuthorizationHandler>();
-         /*   builder.Services.AddAuthorization(options =>
-            {
-                options.AddPolicy("EmployeeMaleOnly", builder =>
-                {
-                    builder.RequireAssertion(context =>
-                    {
-                        var gender = context.User.FindFirstValue("UserGender");
-                        if (gender == "Male")
+			/*   builder.Services.AddAuthorization(options =>
+			   {
+				   options.AddPolicy("EmployeeMaleOnly", builder =>
+				   {
+					   builder.RequireAssertion(context =>
+					   {
+						   var gender = context.User.FindFirstValue("UserGender");
+						   if (gender == "Male")
 
-                            return true;
+							   return true;
 
-                        return false;
-                    });
-                });
-            });*/
+						   return false;
+					   });
+				   });
+			   });*/
 
-            // [Authoriz] used JWT Token in Chck Authantiaction
-            builder.Services.AddAuthentication(options =>
+			// [Authoriz] used JWT Token in Chck Authantiaction
+			builder.Services.AddAuthentication(options =>
 			{
 				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 				options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -149,7 +158,8 @@ namespace BankingSystemAPI
 			});
 
 			// Configure Rate Limiting
-			builder.Services.AddRateLimiter(options => {
+			builder.Services.AddRateLimiter(options =>
+			{
 				options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(content =>
 				RateLimitPartition.GetFixedWindowLimiter(
 					partitionKey: content.Request.Headers.Host.ToString(),
@@ -164,32 +174,56 @@ namespace BankingSystemAPI
 				options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 			});
 			builder.Services.AddMemoryCache();
-			var app = builder.Build();
 
-			// Configure the HTTP request pipeline.
-			if (app.Environment.IsDevelopment())
+			// read values for serilog from appsetting 
+			var config = new ConfigurationBuilder()
+			   .AddJsonFile("appsettings.json")
+			   .Build();
+			Log.Logger = new LoggerConfiguration()
+			   .ReadFrom.Configuration(config)
+			   .CreateLogger();
+			try
 			{
-				app.UseSwagger();
-				app.UseSwaggerUI();
+                Log.Information("Application Starting");
+
+
+                builder.Host.UseSerilog(); // Use Serilog
+
+                var app = builder.Build();
+
+				// Configure the HTTP request pipeline.
+				if (app.Environment.IsDevelopment())
+				{
+					app.UseSwagger();
+					app.UseSwaggerUI();
+				}
+				app.UseRouting();
+
+				// Configure rate limiting middleware
+				app.UseRateLimiter();
+
+				app.UseStaticFiles();
+
+				app.UseCors();
+
+				app.UseResponseCaching();
+				app.UseHttpsRedirection();
+
+				app.UseAuthentication(); //  Check JWT Token
+				app.UseAuthorization();
+
+				app.MapControllers();
+
+				app.Run();
 			}
-			app.UseRouting();
-
-			// Configure rate limiting middleware
-			app.UseRateLimiter();
-
-			app.UseStaticFiles();
-	
-			app.UseCors();
-
-			app.UseResponseCaching();
-			app.UseHttpsRedirection();
-
-			app.UseAuthentication(); //  Check JWT Token
-			app.UseAuthorization();
-
-			app.MapControllers();
-
-			app.Run();
+			catch (Exception ex)
+			{
+				Log.Fatal(ex, "The application failed to start!");
+			}
+			finally
+			{
+				Log.CloseAndFlush();
+			}
 		}
 	}
 }

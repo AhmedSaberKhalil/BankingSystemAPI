@@ -16,115 +16,131 @@ namespace BankingSystemAPI.Controllers
 	{
 		private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<TransferController> _logger;
 
-        public TransferController(IUnitOfWork unitOfWork, IMapper mapper)
+        public TransferController(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TransferController> logger)
 		{
 			this._unitOfWork = unitOfWork;
             this._mapper = mapper;
+            this._logger = logger;
         }
 
 		[HttpGet("GetAll")]
-		public IActionResult GetAll()
-		{
-			return Ok(_unitOfWork.Transfers.GetAll());
-		}
+        public async Task<IActionResult> GetAll()
+        {
+            _logger.LogInformation("Fetching all transfers.");
 
-		[HttpGet("GetById/{id}", Name = "TransferDetailsRoute")]
-		public IActionResult GetById(int id)
-		{
-			return Ok(_unitOfWork.Transfers.GetById(id));
-		}
-		[HttpPost("deposit")]
-		public async Task<IActionResult> Deposit([FromBody] DtoTransfer transferDto)
-		{
-			try
-			{
-				//Transfer transfer = MapToTransfer(transferDto);
+            try
+            {
+                var customers = await _unitOfWork.Transfers.GetAllAsync();
+                return Ok(customers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching all transfers.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("GetById/{id}", Name = "TransferDetailsRoute")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            _logger.LogInformation("Fetching transfer by ID: {Id}", id);
+            var transfer =await  _unitOfWork.Transfers.GetByIdAsync(id);
+            if (transfer == null)
+            {
+                _logger.LogWarning("Transfer with ID {Id} not found.", id);
+                return NotFound();
+            }
+            return Ok(transfer);
+        }
+
+        [HttpPost("Deposit")]
+        public async Task<IActionResult> DepositAsync([FromBody] DtoTransfer transferDto)
+        {
+            _logger.LogInformation("Initiating deposit transaction.");
+
+            try
+            {
                 var transfer = _mapper.Map<Transfer>(transferDto);
+                await _unitOfWork.Transfers.AddAsync(transfer);
+                _unitOfWork.Complete();
 
-                _unitOfWork.Transfers.Add(transfer);
-				_unitOfWork.Complete();
+                var toAccount = await _unitOfWork.Accounts.GetByIdAsync(transferDto.AccountID);
+                if (toAccount == null)
+                {
+                    _logger.LogWarning("ToAccount with ID {Id} not found.", transferDto.AccountID);
+                    return NotFound($"ToAccount with ID {transferDto.AccountID} not found");
+                }
 
-				// Update ToAccount balance
-				Account toAccount = _unitOfWork.Accounts.GetById(transferDto.AccountID);
-				if (toAccount == null)
-				{
-					return NotFound($"ToAccount with ID {transferDto.AccountID} not found");
-				}
-				if (toAccount != null)
-				{
-					toAccount.Balance += transferDto.Amount;
-				}
+                toAccount.Balance += transferDto.Amount;
+                 _unitOfWork.Complete();
 
-				 _unitOfWork.Complete();
+                _logger.LogInformation("Deposit successful. Updated balance for ToAccount {Id}: {Balance}", toAccount.AccountID, toAccount.Balance);
+                return Ok($"Deposit successful. Updated balance for ToAccount {transferDto.AccountID}: {toAccount.Balance}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during deposit transaction.");
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+            }
+        }
 
-				return Ok($"Deposit successful. Updated balance for ToAccount {transferDto.AccountID}: {toAccount.Balance}");
-			}
-			catch (Exception ex)
-			{
-				return StatusCode(500, $"Internal server error: {ex.Message}");
-			}
-		}
+        [HttpPost("Withdraw/{id}")]
+        public async Task<IActionResult> WithdrawAsync(int id, [FromBody] DtoTransfer transferDto)
+        {
+            _logger.LogInformation("Initiating withdrawal transaction.");
 
-		[HttpPost("deposit/{id}")]
-		public async Task<IActionResult> Withdraw(int id, [FromBody] DtoTransfer transferDto)
-		{
-			try
-			{
-			//	Transfer transfer = MapToTransfer(transferDto);
+            try
+            {
                 var transfer = _mapper.Map<Transfer>(transferDto);
-                _unitOfWork.Transfers.Update(id, transfer);
-				_unitOfWork.Complete();
+                _unitOfWork.Transfers.UpdateAsync(id, transfer);
+                 _unitOfWork.Complete();
 
-				// Update ToAccount balance
-				Account toAccount = _unitOfWork.Accounts.GetById(transferDto.AccountID);
-				if (toAccount == null)
-				{
-					return NotFound($"ToAccount with ID {transferDto.AccountID} not found");
-				}
-				if (toAccount != null)
-				{
-					toAccount.Balance -= transferDto.Amount;
-				}
+                var toAccount = await _unitOfWork.Accounts.GetByIdAsync(transferDto.AccountID);
+                if (toAccount == null)
+                {
+                    _logger.LogWarning("ToAccount with ID {Id} not found.", transferDto.AccountID);
+                    return NotFound($"ToAccount with ID {transferDto.AccountID} not found");
+                }
 
-				_unitOfWork.Complete();
+                toAccount.Balance -= transferDto.Amount;
+                _unitOfWork.Complete();
 
-				return Ok($"Withdraw successful. Updated balance for ToAccount {transferDto.AccountID}: {toAccount.Balance}");
-			}
-			catch (Exception ex)
-			{
-				return StatusCode(500, $"Internal server error: {ex.Message}");
-			}
-		}
-		[HttpDelete("Delete/{id}")]
-		public IActionResult DeleteById(int id)
-		{
-			Transfer transfer = _unitOfWork.Transfers.GetById(id);
-			if (transfer == null)
-			{
-				return NotFound("Data Not Found");
-			}
-			else
-			{
-				try
-				{
-					_unitOfWork.Transfers.Delete(transfer);
-					return StatusCode(StatusCodes.Status204NoContent);
-				}
-				catch (Exception ex)
-				{
-					return BadRequest(ex.Message);
-				}
-			}
-		}
-		private Transfer MapToTransfer(DtoTransfer transferDto)
-		{
-			return new Transfer
-			{
-				Date = DateTime.Now,
-				Amount = transferDto.Amount,
-				AccountID = transferDto.AccountID,
-			};
-		}
-	}
+                _logger.LogInformation("Withdrawal successful. Updated balance for ToAccount {Id}: {Balance}", toAccount.AccountID, toAccount.Balance);
+                return Ok($"Withdrawal successful. Updated balance for ToAccount {transferDto.AccountID}: {toAccount.Balance}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during withdrawal transaction.");
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+            }
+        }
+        [HttpDelete("Delete/{id}")]
+        public async Task<IActionResult> DeleteByIdAsync(int id)
+        {
+            _logger.LogInformation("Deleting transfer with ID: {Id}", id);
+
+            try
+            {
+                var transfer = await _unitOfWork.Transfers.GetByIdAsync(id);
+                if (transfer == null)
+                {
+                    _logger.LogWarning("Transfer with ID {Id} not found for deletion.", id);
+                    return NotFound("Data Not Found");
+                }
+
+                await _unitOfWork.Transfers.DeleteAsync(transfer);
+                _unitOfWork.Complete();
+
+                _logger.LogInformation("Transfer with ID {Id} deleted successfully.", id);
+                return StatusCode(StatusCodes.Status204NoContent);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting transfer with ID: {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error occurred while deleting transfer.");
+            }
+        }
+    }
 }
