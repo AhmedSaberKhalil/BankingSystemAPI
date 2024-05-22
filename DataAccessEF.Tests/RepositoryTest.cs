@@ -48,7 +48,7 @@ namespace DataAccessEF.Tests
             var accountRepository = new Repository<Account>(dbContext);
 
             //Act
-            var result = accountRepository.GetById(id);
+            var result =await accountRepository.GetByIdAsync(id);
 
             //Assert
             Assert.NotNull(result);
@@ -63,8 +63,8 @@ namespace DataAccessEF.Tests
             var accountRepository = new Repository<Account>(dbContext);
 
             //Act &Assert 
-            Assert.Throws<ArgumentNullException>(() => accountRepository.GetById(id));
-       
+            await Assert.ThrowsAsync<ArgumentNullException>(() => accountRepository.GetByIdAsync(id));
+
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace DataAccessEF.Tests
             var accountRepository = new Repository<Account>(dbContext);
 
             //Act
-            var result = accountRepository.GetAll();
+            var result =await accountRepository.GetAllAsync();
 
             //Assert
             Assert.NotNull(result);
@@ -97,7 +97,7 @@ namespace DataAccessEF.Tests
             var accountRepository = new Repository<Account>(dbContext);
 
             //Act
-            var result = accountRepository.Add(account);
+            var result =await accountRepository.AddAsync(account);
 
             //Assert
             Assert.NotNull(result);
@@ -107,10 +107,10 @@ namespace DataAccessEF.Tests
         public async void EditAccount_ReturnUpdatedAccount()
         {
             //Arrange
-            int id = 6;
+            int id = 1;
             var account = new Account
             {
-                AccountID = id,
+                AccountID = 1,
                 Balance = 2000,
                 Type = "Saving",
                 CustomerID = 1,
@@ -120,7 +120,7 @@ namespace DataAccessEF.Tests
             var accountRepository = new Repository<Account>(dbContext);
 
             //Act
-            var result = accountRepository.Update(id,account);
+            var result =await accountRepository.UpdateAsync(id,account);
 
             //Assert
             Assert.NotNull(result);
