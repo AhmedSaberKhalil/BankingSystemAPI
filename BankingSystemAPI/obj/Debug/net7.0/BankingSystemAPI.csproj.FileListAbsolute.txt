@@ -104,3 +104,9 @@ D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\ne
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Sinks.Console.dll
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Sinks.Debug.dll
 D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\Serilog.Sinks.File.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\BouncyCastle.Cryptography.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\MailKit.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\MimeKit.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\System.Formats.Asn1.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\System.Security.Cryptography.Pkcs.dll
+D:\.NET Core\Asp.Net Core Web API\BankingSystemAPI\BankingSystemAPI\bin\Debug\net7.0\runtimes\win\lib\net7.0\System.Security.Cryptography.Pkcs.dll

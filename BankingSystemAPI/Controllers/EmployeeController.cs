@@ -47,8 +47,6 @@ namespace BankingSystemAPI.Controllers
 
         [HttpGet("GetById/{id}", Name = "EmployeeDetailsRoute")]
         [Authorize(Policy = "EmployeeMaleOnly")]
-        [HttpGet("GetById/{id}", Name = "EmployeeDetailsRoute")]
-        [Authorize(Policy = "EmployeeMaleOnly")]
         public async Task<IActionResult> GetById(int id)
         {
             _logger.LogInformation("Fetching employee by ID: {Id}", id);
