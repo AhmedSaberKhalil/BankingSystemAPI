@@ -1,0 +1,31 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # This specifies the environment GitHub will use to run the workflow
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2  # This checks out your repository code
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '7.0.x'  # Specify the .NET version you are using
+
+    - name: Restore dependencies
+      run: dotnet restore  # Restores the dependencies
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore  # Builds the project
+
+    - name: Run tests
+      run: dotnet test --no-restore --verbosity normal  # Runs the tests
